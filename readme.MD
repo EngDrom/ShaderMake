@@ -51,3 +51,30 @@ vec3 transform (float x, float y) {
         return vec3(x, y, x + y);
 }
 ```
+
+# Inputs, outputs and uniforms
+
+When you want to compile a shader, it can be needed to import existing inputs, setup outputs or use uniform variables shared between every vertex. For this you can use a ShaderOptions element and use addInput, addOutput and addUniform to append metadata. You can also generate the default vertex shader data or fragment shader data using the useVertex or useFragment functions. The following example generates a function with an uniform displacement :
+
+```python
+from shadermake.decorator import make_shader
+from shadermake.engines.opengl import OpenGLEngine, ShaderOptions, vec2, vec3, vec4
+
+options = ShaderOptions() \
+    .useVertex() \
+    .addInput( vec4, "pos", 0 ) \
+    .addUniform( vec4, "delta" )
+@make_shader(OpenGLEngine, shader_options=options)
+def shader():
+    gl_Position = pos + delta
+```
+
+```c
+layout(location = 0) in vec4 pos;
+uniform vec4 delta;
+
+int shader () {
+        gl_Position = pos + delta;
+        return 0;
+}
+```

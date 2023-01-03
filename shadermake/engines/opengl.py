@@ -4,6 +4,44 @@ from shadermake.engine import AbstractEngine
 
 import dis
 
+class ShaderOptions:
+    def __init__(self):
+        self.__inputs  = []
+        self.__outputs = []
+        self.__uniform = []
+
+        self.__type = None
+    
+    def useVertex(self):
+        self.__type = "vertex"
+        return self
+    def useFragment(self):
+        self.__type = "fragment"
+        return self
+    def inputs (self): return self.__inputs
+    def outputs(self): return self.__outputs
+    def uniform(self): return self.__uniform
+    def allVars(self):
+        if self.__type == "vertex":
+            return self.inputs() + self.outputs() + self.uniform() + [ (_t_vec4, "gl_Position"), (_t_float, "gl_PointSize") ]
+        if self.__type == "fragment":
+            return self.inputs() + self.outputs() + self.uniform()
+        return self.inputs() + self.outputs() + self.uniform()
+
+    def addInput (self, type, name, location=None):
+        type = transform_native_type(type)
+        self.__inputs.append((type, name, location))
+        return self
+    def addOutput(self, type, name, location=None):
+        type = transform_native_type(type)
+        self.__outputs.append((type, name, location))
+        return self
+    def addUniform(self, type, name):
+        type = transform_native_type(type)
+        self.__uniform.append((type, name))
+        return self
+
+
 class _GLSL_Type:
     def __init__(self, typename):
         self.__typename = typename
@@ -73,7 +111,7 @@ class _GLSL_Pure_Function:
         return self
 
 class _GLSL_Shader(_GLSL_Variant):
-    def __init__(self, name, args, end_type, c_code, bound_shaders, python_function):
+    def __init__(self, name, args, end_type, c_code, bound_shaders, python_function, shader_options: ShaderOptions):
         super().__init__(end_type, list(map(lambda T: T[0], args)))
         self.__args   = args
         self.__name   = name
@@ -82,6 +120,7 @@ class _GLSL_Shader(_GLSL_Variant):
         self.__bound_shaders = bound_shaders
 
         self.__python_function = python_function
+        self.shader_options    = shader_options
     def find_variant (self, variables):
         if self.validate(variables):
             return self
@@ -92,7 +131,24 @@ class _GLSL_Shader(_GLSL_Variant):
             return self.__r_c_code
         except Exception: pass
 
-        self.__r_c_code  = "\n".join([ shader.c_code() for shader in self.__bound_shaders ])
+        self.__r_c_code = ""
+
+        for (type, name, *args) in self.shader_options.inputs():
+            if len(args) == 0 or args[0] is None:
+                self.__r_c_code += f"in {type.typename()} {name};\n"
+            else:
+                location = args[0]
+                self.__r_c_code += f"layout(location = {location}) in {type.typename()} {name};\n"
+        for (type, name, *args) in self.shader_options.outputs():
+            if len(args) == 0 or args[0] is None:
+                self.__r_c_code += f"out {type.typename()} {name};\n"
+            else:
+                location = args[0]
+                self.__r_c_code += f"layout(location = {location}) out {type.typename()} {name};\n"
+        for (type, name) in self.shader_options.uniform():
+            self.__r_c_code += f"uniform {type.typename()} {name};\n"
+
+        self.__r_c_code += "\n".join([ shader.c_code() for shader in self.__bound_shaders ])
         self.__r_c_code += "\n"
         self.__r_c_code += self.__c_code
         
@@ -103,14 +159,11 @@ class _GLSL_Shader(_GLSL_Variant):
         return self.__args
 
 class OpenGLEngine(AbstractEngine):
-    def generate (self, function, argument_types, bound_shaders):
+    def generate (self, function, argument_types, bound_shaders, shader_options=ShaderOptions()):
         for shader in bound_shaders:
             assert isinstance(shader, _GLSL_Shader)
         for idx_arg_type in range(len(argument_types)):
-            if argument_types[idx_arg_type] == float:
-                argument_types[idx_arg_type] = _t_float
-            if argument_types[idx_arg_type] == int:
-                argument_types[idx_arg_type] = _t_int
+            argument_types[idx_arg_type] = transform_native_type(argument_types[idx_arg_type])
         
         argument_array = function.__code__.co_varnames[:function.__code__.co_argcount]
         assert len(argument_array) == len(argument_types), "Missing argument types in shader declaration"
@@ -124,7 +177,11 @@ class OpenGLEngine(AbstractEngine):
         glsl_shader = []
         type_array  = { name:type for (type, name) in zip(argument_types, argument_array)}
 
+        for (type, name, *args) in shader_options.allVars():
+            type_array[name] = type
+
         for code_piece in code_data:
+            print(code_piece)
             disassembler_name = f"compute__{code_piece.opname}"
             assert hasattr(self, disassembler_name), f"{code_piece.opname} is not implemented : {str(code_piece)}"
         
@@ -144,7 +201,7 @@ class OpenGLEngine(AbstractEngine):
         
         function_c_code = (function_declaration + "\n".join(glsl_shader) + function_end)
 
-        return _GLSL_Shader(function.__name__, argument_data, type_array['<return>'], function_c_code, bound_shaders, function)
+        return _GLSL_Shader(function.__name__, argument_data, type_array['<return>'], function_c_code, bound_shaders, function, shader_options)
 
     def get_typename (self, value_type):
         type_name = None
@@ -158,11 +215,14 @@ class OpenGLEngine(AbstractEngine):
     def compute__LOAD_CONST (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
         if isinstance(operation.argval, float): stack.append((_t_float, operation.argval))
         elif isinstance(operation.argval, int): stack.append((_t_int, operation.argval))
+        elif operation.argval is None: stack.append((_t_NoneType, None))
         else: assert False, "Only integers and floats are implemented in LOAD_CONST"
 
         return None, indentation
     def compute__STORE_FAST (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
         value_type, value = stack.pop()
+
+        assert value_type != _t_NoneType, "Cannot store none type"
 
         if operation.argval in type_array:
             return f"{operation.argval} = {value};", indentation
@@ -177,6 +237,10 @@ class OpenGLEngine(AbstractEngine):
 
         return None, indentation
     def compute__LOAD_GLOBAL(self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        if operation.argval in type_array:
+            stack.append((type_array[operation.argval], operation.argval))
+
+            return None, indentation
         for bound_shader in bound_shaders:
             if bound_shader.name() == operation.argval:
                 stack.append(("function", bound_shader))
@@ -213,8 +277,11 @@ class OpenGLEngine(AbstractEngine):
         return None, indentation
 
     def compute__RETURN_VALUE (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
-        type_name, value = int, 0
+        type_name, value = _t_int, 0
         if len(stack) == 1: type_name, value = stack.pop()
+
+        if type_name == _t_NoneType:
+            type_name, value = _t_int, 0
 
         if '<return>' in type_array:
             assert type_name == type_array['<return>'], "Return type can only be unique"
@@ -238,6 +305,8 @@ class OpenGLEngine(AbstractEngine):
         stack.append((return_type, func_call))
 
         return None, indentation
+
+_t_NoneType = _GLSL_Type("0")
 
 _t_vec2 = _GLSL_Type("vec2")
 _t_vec3 = _GLSL_Type("vec3")
@@ -264,6 +333,16 @@ vec3 = _GLSL_Pure_Function( "vec3" ) \
     .link_variant( _GLSL_Variant( _t_vec3, [ _t_float, _t_float, _t_float ] ) )
 vec4 = _GLSL_Pure_Function( "vec4" ) \
     .link_variant( _GLSL_Variant( _t_vec4, [ _t_float, _t_float, _t_float, _t_float ] ) )
+
+def transform_native_type (type):
+    if type == float:
+        type = _t_float
+    if type == int:
+        type = _t_int
+    if type == vec2: type = _t_vec2
+    if type == vec3: type = _t_vec3
+    if type == vec4: type = _t_vec4
+    return type
 
 GLSL_Authorized_Functions = {
     "vec2": vec2,
