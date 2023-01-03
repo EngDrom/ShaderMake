@@ -13,23 +13,27 @@ def make_shader_function(engine):
         return function
 
     return wrapper
-def make_shader(engine, inputs: List[Tuple[str, Any]]=[]):
+def make_shader(engine, argument_types=[], bound_shaders=[]):
     manager: AbstractEngine = engine()
 
     def wrapper(function):
-        shader = manager.generate(function)
-        print(shader.c_code())
-        return function
+        shader = manager.generate(function, argument_types, bound_shaders)
+
+        return shader
     
     return wrapper
 
-@make_shader(OpenGLEngine)
+@make_shader(OpenGLEngine, argument_types=[ float ])
+def custom_f(x):
+    return x + 1
+
+@make_shader(OpenGLEngine, bound_shaders=[custom_f])
 def main_shader():
     x = 1.0
     y = 2
     z = x + y
     z = x - y
-    w = x * y
+    w = custom_f(x * y)
     w = x / y
 
     V = vec2(x, y)
@@ -38,3 +42,4 @@ def main_shader():
     U = V + W
 
     return 0
+print(main_shader.c_code())
