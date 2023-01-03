@@ -92,7 +92,7 @@ class _GLSL_Variant:
         arr = []
         for typename, arg in args:
             arr.append(arg)
-        return f"({', '.join(arr)})"
+        return f"({', '.join(map(str, arr))})"
 
 class _GLSL_Pure_Function:
     def __init__(self, name):
@@ -181,7 +181,6 @@ class OpenGLEngine(AbstractEngine):
             type_array[name] = type
 
         for code_piece in code_data:
-            print(code_piece)
             disassembler_name = f"compute__{code_piece.opname}"
             assert hasattr(self, disassembler_name), f"{code_piece.opname} is not implemented : {str(code_piece)}"
         
@@ -216,7 +215,7 @@ class OpenGLEngine(AbstractEngine):
         if isinstance(operation.argval, float): stack.append((_t_float, operation.argval))
         elif isinstance(operation.argval, int): stack.append((_t_int, operation.argval))
         elif operation.argval is None: stack.append((_t_NoneType, None))
-        else: assert False, "Only integers and floats are implemented in LOAD_CONST"
+        else: assert False, f"Only integers and floats are implemented in LOAD_CONST : {operation.argval}"
 
         return None, indentation
     def compute__STORE_FAST (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
@@ -250,6 +249,8 @@ class OpenGLEngine(AbstractEngine):
         stack.append(("function", GLSL_Authorized_Functions[operation.argval]))
 
         return None, indentation
+    def compute__LOAD_DEREF(self, *args, **kwargs):
+        return self.compute__LOAD_GLOBAL(*args, **kwargs)
     
     def compute__BINARY_OPERAND (self, stack, operand):
         (type_b, b), (type_a, a) = stack.pop(), stack.pop()
