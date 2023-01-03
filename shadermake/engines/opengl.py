@@ -186,7 +186,7 @@ class OpenGLEngine(AbstractEngine):
         return None, indentation
     
     def compute__BINARY_OPERAND (self, stack, operand):
-        (type_a, a), (type_b, b) = stack.pop(), stack.pop()
+        (type_b, b), (type_a, a) = stack.pop(), stack.pop()
         type_c = type_a.get_resulting_type(operand, type_b)
         
         assert type_c is not None, f"combination of types {type_a} and {type_b} did not work"
