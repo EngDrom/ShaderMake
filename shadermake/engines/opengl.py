@@ -73,13 +73,15 @@ class _GLSL_Pure_Function:
         return self
 
 class _GLSL_Shader(_GLSL_Variant):
-    def __init__(self, name, args, end_type, c_code, bound_shaders):
+    def __init__(self, name, args, end_type, c_code, bound_shaders, python_function):
         super().__init__(end_type, list(map(lambda T: T[0], args)))
         self.__args   = args
         self.__name   = name
         self.__c_code = c_code
 
         self.__bound_shaders = bound_shaders
+
+        self.__python_function = python_function
     def find_variant (self, variables):
         if self.validate(variables):
             return self
@@ -142,7 +144,7 @@ class OpenGLEngine(AbstractEngine):
         
         function_c_code = (function_declaration + "\n".join(glsl_shader) + function_end)
 
-        return _GLSL_Shader(function.__name__, argument_data, type_array['<return>'], function_c_code, bound_shaders)
+        return _GLSL_Shader(function.__name__, argument_data, type_array['<return>'], function_c_code, bound_shaders, function)
 
     def get_typename (self, value_type):
         type_name = None

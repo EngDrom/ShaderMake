@@ -23,3 +23,31 @@ vec3 transform (float x, float y) {
         return vec3(x, y, x + y);
 }
 ```
+
+# Linking multiple functions
+
+We will admit you have a cool python function called magic that you would like to use in multiple shader functions. You can do that using the parameter bound_shaders. For this example we will use the cool function f(x) = x + 1 and add it to our transform function :
+
+```python
+from shadermake.decorator import make_shader
+from shadermake.engines.opengl import OpenGLEngine, vec3
+
+@make_shader(OpenGLEngine, argument_types=[ float ])
+def f(x):
+    return x + 1
+
+@make_shader(OpenGLEngine, argument_types=[ float, float ], bound_shaders=[ f ])
+def transform(x, y):
+    y = f(y)
+    return vec3(x, y, x + y)
+```
+
+```c
+float f (float x) {
+        return x + 1;
+}
+vec3 transform (float x, float y) {
+        y = f(y);
+        return vec3(x, y, x + y);
+}
+```
