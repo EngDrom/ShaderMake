@@ -211,6 +211,9 @@ class OpenGLEngine(AbstractEngine):
 
         return type_name
 
+    # Python no-op so nothing happens
+    def compute__LOAD_RESUME(self, *args, **kwargs): pass
+
     def compute__LOAD_CONST (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
         if isinstance(operation.argval, float): stack.append((_t_float, operation.argval))
         elif isinstance(operation.argval, int): stack.append((_t_int, operation.argval))
