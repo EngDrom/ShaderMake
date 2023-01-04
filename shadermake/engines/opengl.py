@@ -171,7 +171,6 @@ class OpenGLEngine(AbstractEngine):
         argument_data = [(type, name) for (type, name) in zip(argument_types, argument_array)]
 
         code_data = dis.Bytecode(function)
-        dis.disassemble(function.__code__)
         stack     = []
 
         indentation = 1
@@ -182,8 +181,6 @@ class OpenGLEngine(AbstractEngine):
             type_array[name] = type
 
         user_code   = list(code_data)
-        for code in user_code:
-            print(code, code.offset >> 1)
         glsl_shader = self.generate_c_code( 0, len( user_code ), stack, type_array, 1, bound_shaders, user_code )
         
         if '<return>' not in type_array:
@@ -211,8 +208,6 @@ class OpenGLEngine(AbstractEngine):
             c_code, n_indentation, delta = disassembler(stack, type_array, code_piece, indentation, bound_shaders, function_code)
 
             if hasattr(code_piece, "appended_blocks"):
-                print(indentation, n_indentation)
-                print(code_piece.appended_blocks)
                 delta_indentation = 0
                 for appended_block, end_indentation, local_indetation in code_piece.appended_blocks:
                     delta_indentation = end_indentation - indentation
@@ -220,7 +215,6 @@ class OpenGLEngine(AbstractEngine):
                     glsl_shader.append("\t" * local_indetation + appended_block)
                 n_indentation += delta_indentation
                 indentation += delta_indentation
-                print(indentation, n_indentation)
 
             if c_code is not None:
                 glsl_shader.append("\t" * indentation + c_code)
@@ -231,10 +225,8 @@ class OpenGLEngine(AbstractEngine):
         return glsl_shader
 
     def find_lca (self, user_code, a, b):
-        print("find_lca", a, b)
         while a != b:
             if a > b: a, b = b, a
-            print("sub_lca", a, b, len(user_code))
 
             next_a = a + 1
             if user_code[a].opname == "JUMP_FORWARD":
@@ -261,7 +253,7 @@ class OpenGLEngine(AbstractEngine):
 
             if function_code[c].offset <= offset: a = c
             else: b = c
-        print("binary search", a, offset, function_code[a])
+        
         return a
 
     # Python no-op so nothing happens
@@ -291,8 +283,6 @@ class OpenGLEngine(AbstractEngine):
 
         function_code[end_branch].appended_blocks.insert( 0, ("}", indentation, indentation) )
         if end_branch != altr_branch:
-            # TODO compute altr_branch
-            print("COMPUTE", altr_branch)
             shader_inner_code = self.generate_c_code(altr_branch, end_branch, stack, { k:type_array[k] for k in type_array.keys() }, indentation + 1, bound_shaders, function_code)
             
             function_code[end_branch].appended_blocks.insert( 0, ("\n".join(shader_inner_code), indentation, 0) )

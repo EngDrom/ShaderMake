@@ -78,3 +78,51 @@ int shader () {
         return 0;
 }
 ```
+
+# If statements
+
+The usage of if statement is implemented by default but the usage of elif strongly increments the C final code size. Here is the example of the shader used in the testing and one of the following results (the one on the github actions architecture) :
+
+```python
+@make_shader(OpenGLEngine)
+def main():
+    x = 0
+    y = 1
+    z = x + y
+    if z > 0.5:
+        y = 2
+    elif z >= 1:
+        y = 4
+    else:
+        y = 3
+    u= 0
+    if u + z > 0.2:
+        a = u - z
+    else: a = u + y
+```
+
+```c
+int main () {
+    int x = 0;
+    int y = 1;
+    int z = x + y;
+    if (z > 0.5) {
+        y = 2;
+    } else {
+        if (z >= 1) {
+            y = 4;
+        } else {
+            y = 3;
+        }
+    }
+    int u = 0;
+    if (u + z > 0.2) {
+        int a = u - z;
+    } else {
+        int a = u + y;
+    }
+    return 0;
+}
+```
+
+As you can see here, the a variable is only created in the if scope. This isn't the default behavior of python so you might have to create your variable and initialize it before the if statement with a placeholder value like 0 to avoid your data being destroyed.
