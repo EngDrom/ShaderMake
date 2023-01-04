@@ -337,6 +337,8 @@ _t_vec2 = _GLSL_Type("vec2")
 _t_vec3 = _GLSL_Type("vec3")
 _t_vec4 = _GLSL_Type("vec4")
 
+_t_mat4 = _GLSL_Type("mat4")
+
 _t_int   = _GLSL_Type("int")
 _t_float = _GLSL_Type("float")
 
@@ -352,12 +354,17 @@ _t_vec2.link_array( [ '+', '-' ], _t_vec2, _t_vec2 )
 _t_vec3.link_array( [ '+', '-' ], _t_vec3, _t_vec3 )
 _t_vec4.link_array( [ '+', '-' ], _t_vec4, _t_vec4 )
 
+_t_mat4.link_array( [ '*' ], _t_vec4, _t_vec4 )
+_t_mat4.link_array( [ '+', '-', '*' ], _t_mat4, _t_mat4 )
+
 vec2 = _GLSL_Pure_Function( "vec2" ) \
     .link_variant( _GLSL_Variant( _t_vec2, [ _t_float, _t_float ] ) )
 vec3 = _GLSL_Pure_Function( "vec3" ) \
     .link_variant( _GLSL_Variant( _t_vec3, [ _t_float, _t_float, _t_float ] ) )
 vec4 = _GLSL_Pure_Function( "vec4" ) \
     .link_variant( _GLSL_Variant( _t_vec4, [ _t_float, _t_float, _t_float, _t_float ] ) )
+
+mat4 = _t_mat4
 
 def transform_native_type (type):
     if type == float:

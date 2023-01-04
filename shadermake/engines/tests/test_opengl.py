@@ -1,6 +1,6 @@
 
 from shadermake.decorator      import make_shader
-from shadermake.engines.opengl import OpenGLEngine, ShaderOptions, vec2, vec3, vec4
+from shadermake.engines.opengl import OpenGLEngine, ShaderOptions, vec2, vec3, vec4, mat4
 
 def test_simple_function():
     @make_shader(OpenGLEngine)
@@ -112,3 +112,34 @@ def test_simple_added_function ():
         "float c = f(a + b);",
         "return 0;"
     ]) + "\n}"
+
+def test_matrix_multiplication ():
+    options = ShaderOptions() \
+        .addInput( vec4, "position", 0 ) \
+        .addUniform( mat4, "matProj" ) \
+        .addUniform( mat4, "matModel" ) \
+        .addUniform( mat4, "matView" )
+    @make_shader(OpenGLEngine, shader_options=options)
+    def main():
+        L = matProj * position
+        M = matProj * matModel * matView
+        R = M * position
+        U = matProj * matModel * matView * position
+
+        gl_Position = U
+    
+    assert main.c_code() == "\n".join([
+        "layout(location = 0) in vec4 position;",
+        "uniform mat4 matProj;",
+        "uniform mat4 matModel;",
+        "uniform mat4 matView;",
+        "",
+        "int main () {",
+        "\tvec4 L = matProj * position;",
+        "\tmat4 M = matProj * matModel * matView;",
+        "\tvec4 R = M * position;",
+        "\tvec4 U = matProj * matModel * matView * position;",
+        "\tvec4 gl_Position = U;",
+        "\treturn 0;",
+        "}"
+    ])
