@@ -212,7 +212,14 @@ class OpenGLEngine(AbstractEngine):
         return type_name
 
     # Python no-op so nothing happens
-    def compute__LOAD_RESUME(self, *args, **kwargs): pass
+    def compute__RESUME(self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        return None, indentation
+    def compute__PRECALL(self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        return None, indentation
+    def compute__COPY_FREE_VARS(self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        return None, indentation
+    def compute__PUSH_NULL(self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        return None, indentation
 
     def compute__LOAD_CONST (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
         if isinstance(operation.argval, float): stack.append((_t_float, operation.argval))
@@ -262,7 +269,12 @@ class OpenGLEngine(AbstractEngine):
         assert type_c is not None, f"combination of types {type_a} and {type_b} did not work"
         
         stack.append((type_c, f"{a} {operand} {b}"))
+    
+    def compute__BINARY_OP (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        print(operation)
+        self.compute__BINARY_OPERAND(stack, operation.argrepr)
 
+        return None, indentation
     def compute__BINARY_ADD (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
         self.compute__BINARY_OPERAND(stack, "+")
 
@@ -292,11 +304,8 @@ class OpenGLEngine(AbstractEngine):
         else: type_array['<return>'] = type_name
         
         return f"return {value};", indentation
-    def compute__CALL_FUNCTION (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
-        args = stack[- operation.argval:]
-        func = stack[- operation.argval - 1]
-        for _ in range(operation.argval + 1): stack.pop()
-
+    
+    def make_call(self, args, func, stack: List, indentation: int):
         assert func[0] == 'function', "The function called should be a function"
 
         func: _GLSL_Pure_Function = func[1]
@@ -309,6 +318,18 @@ class OpenGLEngine(AbstractEngine):
         stack.append((return_type, func_call))
 
         return None, indentation
+    def compute__CALL_FUNCTION (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        args = stack[- operation.argval:]
+        func = stack[- operation.argval - 1]
+        for _ in range(operation.argval + 1): stack.pop()
+
+        return self.make_call(args, func, stack, indentation)
+    def compute__CALL (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders):
+        args = stack[- operation.argval:]
+        func = stack[- operation.argval - 1]
+        for _ in range(operation.argval + 1): stack.pop()
+
+        return self.make_call(args, func, stack, indentation)
 
 _t_NoneType = _GLSL_Type("0")
 
