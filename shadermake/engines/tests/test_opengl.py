@@ -143,3 +143,66 @@ def test_matrix_multiplication ():
         "\treturn 0;",
         "}"
     ])
+
+EXPECTED_IF_STATEMENT_RESULT = [ """
+int main () {
+\tint x = 0;
+\tint y = 1;
+\tint z = x + y;
+\tif (z > 0.5) {
+\t\ty = 2;
+\t} else {
+\t\tif (z >= 1) {
+\t\t\ty = 4;
+\t\t} else {
+\t\t\ty = 3;
+\t\t}
+\t}
+\tint u = 0;
+\tif (u + z > 0.2) {
+\t\tint a = u - z;
+\t\treturn 0;
+\t}
+\tint a = u + y;
+\treturn 0;
+}""", """
+int main () {
+\tint x = 0;
+\tint y = 1;
+\tint z = x + y;
+\tif (z > 0.5) {
+\t\ty = 2;
+\t} else {
+\t\tif (z >= 1) {
+\t\t\ty = 4;
+\t\t} else {
+\t\t\ty = 3;
+\t\t}
+\t}
+\tint u = 0;
+\tif (u + z > 0.2) {
+\t\tint a = u - z;
+\t} else {
+\t\tint a = u + y;
+\t}
+\treturn 0;
+}"""]
+def test_if_statement ():
+    @make_shader(OpenGLEngine)
+    def main():
+        x = 0
+        y = 1
+        z = x + y
+        if z > 0.5:
+            y = 2
+        elif z >= 1:
+            y = 4
+        else:
+            y = 3
+        u= 0
+        if u + z > 0.2:
+            a = u - z
+        else: a = u + y
+    
+    print(main.c_code())
+    assert main.c_code() in EXPECTED_IF_STATEMENT_RESULT
