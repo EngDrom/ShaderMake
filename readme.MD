@@ -1,7 +1,7 @@
 
 # shader-make
 
-Drom licensed project to make universal shader translator. shader-make currently only works in Python. It uses a decorator to transform itself into a GPU based function.
+Drom project to make shader translator. shader-make currently only works with GLSL. It uses a decorator to transform itself into a GPU based function, here for OpenGL. You cannot currently reuse a shader function as a default function but we prepared the setup to do that. We haven't implemented every python feature that we don't think are usefull for the purpose of what we will be using it for, such as while loops that could be interesting.
 
 # Compiling a simple function to shader code
 
