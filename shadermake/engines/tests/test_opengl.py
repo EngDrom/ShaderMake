@@ -7,7 +7,7 @@ def test_simple_function():
     def main():
         pass
     
-    assert main.c_code() == "\nint main () {\n\treturn 0;\n}"
+    assert main.c_code() == "\nvoid main () {\n\n}"
 
 def test_simple_arithmetic():
     @make_shader(OpenGLEngine)
@@ -25,7 +25,7 @@ def test_simple_arithmetic():
         W = x * z
         W = x / z
     assert main.c_code() == "\n\t".join([
-        "\nint main () {",
+        "\nvoid main () {",
         "int x = 0;",
         "int y = 1;",
         "float z = 2.0;",
@@ -36,8 +36,7 @@ def test_simple_arithmetic():
         "float W = x + z;",
         "W = x - z;",
         "W = x * z;",
-        "W = x / z;",
-        "return 0;"
+        "W = x / z;"
     ]) + "\n}"
 
 def test_vector_arithmetic ():
@@ -49,11 +48,10 @@ def test_vector_arithmetic ():
         C = A + B
     
     assert main.c_code() == "\n\t".join([
-        "\nint main () {",
+        "\nvoid main () {",
         "vec2 A = vec2(0, 1);",
         "vec2 B = vec2(1.0, 2.0);",
-        "vec2 C = A + B;",
-        "return 0;"
+        "vec2 C = A + B;"
     ]) + "\n}"
 
 def test_input_arithmetic ():
@@ -62,10 +60,9 @@ def test_input_arithmetic ():
         z = x + y
         A = A + vec2(x, z)
     assert main.c_code() == "\n\t".join([
-        "\nint main (int x, float y, vec2 A) {",
+        "\nvoid main (int x, float y, vec2 A) {",
         "float z = x + y;",
-        "A = A + vec2(x, z);",
-        "return 0;"
+        "A = A + vec2(x, z);"
     ]) + "\n}"
 
 def test_options ():
@@ -87,10 +84,9 @@ def test_options ():
         "out vec2 D;",
         "uniform vec2 E;"
     ])+ "\n\t".join([
-        "\n\nint main () {",
+        "\n\nvoid main () {",
         "C = A + B;",
-        "D = C + E;",
-        "return 0;"
+        "D = C + E;"
     ]) + "\n}"
 
 def test_simple_added_function ():
@@ -106,11 +102,10 @@ def test_simple_added_function ():
         "\nfloat f (float x) {",
         "return x + 1;"
     ]) + "\n}\n" + "\n\t".join([
-        "int main () {",
+        "void main () {",
         "int a = 0;",
         "int b = 1;",
-        "float c = f(a + b);",
-        "return 0;"
+        "float c = f(a + b);"
     ]) + "\n}"
 
 def test_matrix_multiplication ():
@@ -134,18 +129,17 @@ def test_matrix_multiplication ():
         "uniform mat4 matModel;",
         "uniform mat4 matView;",
         "",
-        "int main () {",
+        "void main () {",
         "\tvec4 L = matProj * position;",
         "\tmat4 M = matProj * matModel * matView;",
         "\tvec4 R = M * position;",
         "\tvec4 U = matProj * matModel * matView * position;",
         "\tvec4 gl_Position = U;",
-        "\treturn 0;",
         "}"
     ])
 
 EXPECTED_IF_STATEMENT_RESULT = [ """
-int main () {
+void main () {
 \tint x = 0;
 \tint y = 1;
 \tint z = x + y;
@@ -161,12 +155,10 @@ int main () {
 \tint u = 0;
 \tif (u + z > 0.2) {
 \t\tint a = u - z;
-\t\treturn 0;
 \t}
 \tint a = u + y;
-\treturn 0;
 }""", """
-int main () {
+void main () {
 \tint x = 0;
 \tint y = 1;
 \tint z = x + y;
@@ -185,7 +177,6 @@ int main () {
 \t} else {
 \t\tint a = u + y;
 \t}
-\treturn 0;
 }"""]
 def test_if_statement ():
     @make_shader(OpenGLEngine)

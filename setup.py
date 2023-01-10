@@ -8,7 +8,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, "readme.MD"), encoding="utf-8") as fh:
     long_description = "\n" + fh.read()
 
-VERSION = '0.0.2'
+VERSION = '0.0.4'
 DESCRIPTION = 'Transforming python code to GLSL shaders.'
 
 # Setting up
@@ -20,7 +20,7 @@ setup(
     description=DESCRIPTION,
     long_description_content_type="text/markdown",
     long_description=long_description,
-    packages=find_packages(),
+    packages=[ 'shadermake', 'shadermake.engines' ],
     install_requires=[],
     url="https://github.com/EngDrom/ShaderMake",
     keywords=['python', 'opengl', 'glsl'],

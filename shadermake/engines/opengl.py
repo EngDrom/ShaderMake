@@ -184,8 +184,7 @@ class OpenGLEngine(AbstractEngine):
         glsl_shader = self.generate_c_code( 0, len( user_code ), stack, type_array, 1, bound_shaders, user_code )
         
         if '<return>' not in type_array:
-            type_array['<return>'] = int
-            glsl_shader.append("\treturn 0;")
+            type_array['<return>'] = _t_void
         
         function_parameters  = ", ".join([ f"{self.get_typename(type)} {name}" for (type, name) in argument_data ])
         function_declaration = f"{self.get_typename(type_array['<return>'])} {function.__name__} ({function_parameters})" + " {\n"
@@ -373,12 +372,14 @@ class OpenGLEngine(AbstractEngine):
         if len(stack) == 1: type_name, value = stack.pop()
 
         if type_name == _t_NoneType:
-            type_name, value = _t_int, 0
+            type_name, value = _t_void, 0
 
         if '<return>' in type_array:
             assert type_name == type_array['<return>'], "Return type can only be unique"
         else: type_array['<return>'] = type_name
         
+        if type_name == _t_void:
+            return None, indentation, 0
         return f"return {value};", indentation, 0
     
     def make_call(self, args, func, stack: List, indentation: int):
@@ -420,6 +421,8 @@ _t_mat4 = _GLSL_Type("mat4")
 _t_int   = _GLSL_Type("int")
 _t_float = _GLSL_Type("float")
 _t_bool  = _GLSL_Type("bool")
+
+_t_void = _GLSL_Type("void")
 
 _t_int  .link_array( [ '+', '-', '*', '/' ], _t_int,   _t_int )
 _t_int  .link_array( [ '+', '-', '*', '/' ], _t_float, _t_float )
