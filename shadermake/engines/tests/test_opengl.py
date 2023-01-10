@@ -195,5 +195,26 @@ def test_if_statement ():
             a = u - z
         else: a = u + y
     
-    print(main.c_code())
     assert main.c_code() in EXPECTED_IF_STATEMENT_RESULT
+
+def test_attributes():
+    @make_shader(OpenGLEngine)
+    def main():
+        x = 0
+        y = 1
+        z = x + y
+        W = vec2(x, y)
+
+        u = W.x
+        v = W.y
+
+    assert main.c_code() == "\n".join([
+        "\nvoid main () {",
+        "\tint x = 0;",
+        "\tint y = 1;",
+        "\tint z = x + y;",
+        "\tvec2 W = vec2(x, y);",
+        "\tfloat u = W.x;",
+        "\tfloat v = W.y;",
+        "}"
+    ])

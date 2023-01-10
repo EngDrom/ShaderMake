@@ -48,6 +48,7 @@ class _GLSL_Type:
         self.__operands = {}
         self.__any_oper = {}
         self.__castable = set()
+        self.__attributes = {}
     def typename(self):
         return self.__typename
     def castable (self, other_type):
@@ -67,6 +68,15 @@ class _GLSL_Type:
     def link_castable (self, type):
         self.__castable.add(type)
         return self
+    def link_attribute (self, name, type):
+        self.__attributes[name] = type
+        return self
+    def link_attribute_array (self, names, type):
+        for name in names:
+            self.link_attribute(name, type)
+        return self
+    def get_attribute_type (self, name):
+        return self.__attributes[name]
     def get_resulting_type (self, operand, type):
         if type in self.__any_oper:
             return self.__any_oper[type]
@@ -333,7 +343,15 @@ class OpenGLEngine(AbstractEngine):
         return None, indentation, 0
     def compute__LOAD_DEREF(self, *args, **kwargs):
         return self.compute__LOAD_GLOBAL(*args, **kwargs)
-    
+    def compute__LOAD_ATTR (self, stack: List, type_array, operation: dis.Instruction, indentation: int, bound_shaders, function_code):
+        value_type, value = stack.pop()
+
+        next_type = value_type.get_attribute_type(operation.argval)
+
+        stack.append( (next_type, f"{str(value)}.{operation.argval}") )
+
+        return None, indentation, 0
+
     def compute__BINARY_OPERAND (self, stack, operand):
         (type_b, b), (type_a, a) = stack.pop(), stack.pop()
         type_c = type_a.get_resulting_type(operand, type_b)
@@ -439,6 +457,10 @@ _t_float.link_castable(_t_int)
 _t_vec2.link_array( [ '+', '-' ], _t_vec2, _t_vec2 )
 _t_vec3.link_array( [ '+', '-' ], _t_vec3, _t_vec3 )
 _t_vec4.link_array( [ '+', '-' ], _t_vec4, _t_vec4 )
+
+_t_vec2.link_attribute_array( [ 'x', 'y' ], _t_float )
+_t_vec3.link_attribute_array( [ 'x', 'y', 'z' ], _t_float )
+_t_vec4.link_attribute_array( [ 'x', 'y', 'z', 'w' ], _t_float )
 
 _t_mat4.link_array( [ '*' ], _t_vec4, _t_vec4 )
 _t_mat4.link_array( [ '+', '-', '*' ], _t_mat4, _t_mat4 )
